@@ -101,12 +101,16 @@ class Protocol : public mate::TrackableObject<Protocol> {
                         mate::Arguments* args) {
     CompletionCallback callback;
     args->GetNext(&callback);
+    auto request_context_getter =
+        browser_context_->url_request_context_getter();
+    if (!request_context_getter)
+      return;
     content::BrowserThread::PostTaskAndReplyWithResult(
         content::BrowserThread::IO, FROM_HERE,
         base::Bind(&Protocol::RegisterProtocolInIO<RequestJob>,
-                   request_context_getter_, isolate(), scheme, handler),
-        base::Bind(&Protocol::OnIOCompleted,
-                   GetWeakPtr(), callback));
+                   base::RetainedRef(request_context_getter), isolate(), scheme,
+                   handler),
+        base::Bind(&Protocol::OnIOCompleted, GetWeakPtr(), callback));
   }
   template<typename RequestJob>
   static ProtocolError RegisterProtocolInIO(
@@ -147,12 +151,16 @@ class Protocol : public mate::TrackableObject<Protocol> {
                          mate::Arguments* args) {
     CompletionCallback callback;
     args->GetNext(&callback);
+    auto request_context_getter =
+        browser_context_->url_request_context_getter();
+    if (!request_context_getter)
+      return;
     content::BrowserThread::PostTaskAndReplyWithResult(
         content::BrowserThread::IO, FROM_HERE,
         base::Bind(&Protocol::InterceptProtocolInIO<RequestJob>,
-                   request_context_getter_, isolate(), scheme, handler),
-        base::Bind(&Protocol::OnIOCompleted,
-                   GetWeakPtr(), callback));
+                   base::RetainedRef(request_context_getter), isolate(), scheme,
+                   handler),
+        base::Bind(&Protocol::OnIOCompleted, GetWeakPtr(), callback));
   }
   template<typename RequestJob>
   static ProtocolError InterceptProtocolInIO(
@@ -187,13 +195,11 @@ class Protocol : public mate::TrackableObject<Protocol> {
   // Convert error code to string.
   std::string ErrorCodeToString(ProtocolError error);
 
-  AtomURLRequestJobFactory* GetJobFactoryInIO() const;
-
   base::WeakPtr<Protocol> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();
   }
 
-  scoped_refptr<brightray::URLRequestContextGetter> request_context_getter_;
+  scoped_refptr<AtomBrowserContext> browser_context_;
   base::WeakPtrFactory<Protocol> weak_factory_;
 
   DISALLOW_COPY_AND_ASSIGN(Protocol);
