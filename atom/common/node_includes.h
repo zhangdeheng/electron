@@ -29,6 +29,9 @@
 #undef LIKELY
 #undef arraysize
 #undef debug_string  // This is defined in macOS 10.9 SDK in AssertMacros.h.
+#if defined(_WIN32)
+#undef ssize_t  // This is defined in leveldatabase/port/port_chromium.h.
+#endif  // _WIN32
 #include "vendor/node/src/env.h"
 #include "vendor/node/src/env-inl.h"
 #include "vendor/node/src/node.h"
